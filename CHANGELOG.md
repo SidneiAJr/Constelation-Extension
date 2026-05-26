@@ -2,7 +2,7 @@
 
 All notable changes to the "constellation-project-creator" extension will be documented in this file.
 
-## [0.0.2] - 2025-01-XX
+## [0.0.2] 
 
 ### Added
 - 📁 More complete project structure
@@ -19,7 +19,7 @@ All notable changes to the "constellation-project-creator" extension will be doc
 
 ---
 
-## [0.0.1] - 2025-01-XX
+## [0.0.1] 
 
 ### Added
 - 🎉 Initial release
