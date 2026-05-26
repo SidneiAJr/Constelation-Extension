@@ -1,255 +1,241 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { generateNodeProject, generateSpringProject, generatePhpProject, generateCSharpProject, generateTypeScriptProject } from '../templates/index';
+import { 
+    generateNodeProject, 
+    generateSpringProject, 
+    generatePhpProject, 
+    generateCSharpProject, 
+    generateTypeScriptProject 
+} from '../templates/index';
 
-export async function createProject() {
-    // 1. Ask for project name
-    const projectName = await vscode.window.showInputBox({
-        prompt: '📁 Project name',
-        placeHolder: 'my-awesome-project'
-    });
-    if (!projectName) return;
+export async function createProject(architecture: string = 'mvc') {
+    try {
+        // 1. Ask for project name
+        const projectName = await vscode.window.showInputBox({
+            prompt: '📁 Project name',
+            placeHolder: 'my-awesome-project',
+            validateInput: (value) => {
+                if (!value) return 'Project name is required';
+                if (!/^[a-z0-9-_]+$/.test(value)) return 'Use only lowercase letters, numbers, hyphens and underscores';
+                return null;
+            }
+        });
+        if (!projectName) return;
 
-    // 2. Ask for framework
-    const framework = await vscode.window.showQuickPick(
-        [
-            '🚀 Node.js (Express)',
-            '☕ Java (Spring Boot)',
-            '🐘 PHP (Slim)',
-            '🔷 C# (ASP.NET Core)',
-            '📘 TypeScript'
-        ],
-        { placeHolder: '📌 Select framework' }
-    );
-    if (!framework) return;
+        // 2. Ask for framework
+        const framework = await vscode.window.showQuickPick(
+            [
+                { label: '🟨 JavaScript (Node.js)', value: 'javascript' },
+                { label: '💙 TypeScript (Node.js)', value: 'typescript' },
+                { label: '☕ Java (Spring Boot)', value: 'java' },
+                { label: '🐘 PHP (Slim)', value: 'php' },
+                { label: '🟦 C# (ASP.NET Core)', value: 'csharp' }
+            ],
+            { placeHolder: '📌 Select framework' }
+        );
+        if (!framework) return;
 
-    // 3. Get workspace path
-    const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
-    const projectPath = path.join(workspacePath, projectName);
+        // 3. Ask for architecture if not provided
+        let selectedArchitecture = architecture;
+        if (selectedArchitecture === 'mvc') {
+            const arch = await vscode.window.showQuickPick(
+                [
+                    { label: '🏗️ MVC', value: 'mvc', description: 'Model-View-Controller (classic)' },
+                    { label: '📦 MMVC', value: 'mmvc', description: 'Modular MVC' },
+                    { label: '🎯 DDD', value: 'ddd', description: 'Domain-Driven Design' },
+                    { label: '✨ Clean', value: 'clean', description: 'Clean Architecture' },
+                    { label: '🔷 Hexagonal', value: 'hexagonal', description: 'Ports & Adapters' },
+                    { label: '📡 Event-Driven', value: 'event-driven', description: 'Event-Driven Architecture' }
+                ],
+                { placeHolder: '🏛️ Select architecture' }
+            );
+            if (!arch) return;
+            selectedArchitecture = arch.value;
+        }
 
-    // 4. Create project folder
-    fs.mkdirSync(projectPath, { recursive: true });
-
-    // ================================
-    // 5. CREATE COMPLETE FOLDER STRUCTURE
-    // ================================
-    const folders = [
-        // Backend core
-        'src',
-        'src/controllers',
-        'src/models',
-        'src/services',
-        'src/repositories',
-        'src/middleware',
-        'src/config',
-        'src/utils',
-        'src/helpers',
-        'src/dto',
-        'src/validators',
-        'src/exceptions',
-        'src/routes',
+        // 4. Show selected options
+        const architectureNames: Record<string, string> = {
+            mvc: '🏗️ MVC',
+            mmvc: '📦 MMVC',
+            ddd: '🎯 DDD',
+            clean: '✨ Clean Architecture',
+            hexagonal: '🔷 Hexagonal',
+            'event-driven': '📡 Event-Driven'
+        };
         
-        // Frontend (if applicable)
-        'public',
-        'public/css',
-        'public/js',
-        'public/images',
-        'views',
+        vscode.window.showInformationMessage(`Creating ${projectName} with ${architectureNames[selectedArchitecture]} + ${framework.label}`);
+
+        // 5. Ask for location
+        let workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
         
-        // Tests
-        'tests',
-        'tests/unit',
-        'tests/integration',
+        if (!workspacePath) {
+            const selected = await vscode.window.showOpenDialog({
+                canSelectFolders: true,
+                canSelectFiles: false,
+                canSelectMany: false,
+                title: 'Select project location'
+            });
+            if (!selected) return;
+            workspacePath = selected[0].fsPath;
+        }
+
+        const projectPath = path.join(workspacePath, projectName);
+
+        // 6. Check if folder already exists
+        if (fs.existsSync(projectPath)) {
+            const overwrite = await vscode.window.showWarningMessage(
+                `Folder ${projectName} already exists. Overwrite?`,
+                'Yes', 'No'
+            );
+            if (overwrite !== 'Yes') return;
+            fs.rmSync(projectPath, { recursive: true, force: true });
+        }
+
+        // 7. Create project folder
+        fs.mkdirSync(projectPath, { recursive: true });
+
+        // 8. Create basic folder structure based on architecture
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: `🚀 Creating ${projectName}...`,
+            cancellable: false
+        }, async (progress) => {
+            progress.report({ increment: 0, message: 'Creating folders...' });
+            
+            // Create architecture-specific folders
+            createFoldersByArchitecture(selectedArchitecture, projectPath);
+            
+            progress.report({ increment: 30, message: 'Creating base files...' });
+            
+            // Create base files
+            createBaseFiles(projectPath, projectName, selectedArchitecture);
+            
+            progress.report({ increment: 50, message: 'Generating framework files...' });
+            
+            // Generate framework-specific project
+            switch (framework.value) {
+                case 'javascript':
+                    await generateNodeProject(projectPath, projectName);
+                    break;
+                case 'typescript':
+                    await generateTypeScriptProject(projectPath, projectName);
+                    break;
+                case 'java':
+                    await generateSpringProject(projectPath, projectName);
+                    break;
+                case 'php':
+                    await generatePhpProject(projectPath, projectName);
+                    break;
+                case 'csharp':
+                    await generateCSharpProject(projectPath, projectName);
+                    break;
+            }
+            
+            progress.report({ increment: 100, message: 'Done!' });
+        });
+
+        // 9. Success message
+        const openFolder = await vscode.window.showInformationMessage(
+            `✅ Project ${projectName} created successfully!`,
+            '📂 Open in VS Code', '📋 Copy Path', '👍 Great'
+        );
         
-        // Documentation
-        'docs',
-        
-        // Infrastructure
-        'scripts',
-        '.vscode'
+        if (openFolder === '📂 Open in VS Code') {
+            vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath));
+        } else if (openFolder === '📋 Copy Path') {
+            vscode.env.clipboard.writeText(projectPath);
+            vscode.window.showInformationMessage('📋 Path copied!');
+        }
+
+    } catch (error) {
+        vscode.window.showErrorMessage(`❌ Error creating project: ${error}`);
+        console.error(error);
+    }
+}
+
+// Helper function to create folders by architecture
+function createFoldersByArchitecture(architecture: string, projectPath: string) {
+    const commonFolders = [
+        'public/css', 'public/js', 'public/images', 'public/uploads',
+        'tests/unit', 'tests/integration', 'tests/e2e',
+        'logs', 'tmp', 'docs', 'scripts'
     ];
-
-    folders.forEach(folder => {
+    
+    const architectureFolders: Record<string, string[]> = {
+        mvc: [
+            'src/controllers', 'src/models', 'src/views', 'src/routes',
+            'src/middleware', 'src/config', 'src/utils', 'src/validators'
+        ],
+        mmvc: [
+            'modules/user/controllers', 'modules/user/models', 'modules/user/services',
+            'modules/product/controllers', 'modules/product/models', 'modules/product/services',
+            'shared/middleware', 'shared/utils', 'shared/validators'
+        ],
+        ddd: [
+            'src/domain/entities', 'src/domain/value-objects', 'src/domain/repositories',
+            'src/application/usecases', 'src/application/dtos', 'src/application/mappers',
+            'src/infrastructure/persistence', 'src/infrastructure/http',
+            'src/interfaces/controllers', 'src/interfaces/routes'
+        ],
+        clean: [
+            'src/entities', 'src/usecases', 'src/controllers',
+            'src/gateways', 'src/presenters', 'src/frameworks'
+        ],
+        hexagonal: [
+            'src/core/domain', 'src/core/application',
+            'src/ports/incoming', 'src/ports/outgoing',
+            'src/adapters/incoming', 'src/adapters/outgoing'
+        ],
+        'event-driven': [
+            'src/events', 'src/handlers', 'src/consumers',
+            'src/publishers', 'src/commands', 'src/queries',
+            'src/domain', 'src/infrastructure'
+        ]
+    };
+    
+    // Create architecture-specific folders
+    const folders = architectureFolders[architecture] || architectureFolders.mvc;
+    [...commonFolders, ...folders].forEach(folder => {
         fs.mkdirSync(path.join(projectPath, folder), { recursive: true });
     });
+}
 
-    // ================================
-    // 6. CREATE BASE FILES
-    // ================================
-    
+// Helper function to create base files
+function createBaseFiles(projectPath: string, projectName: string, architecture: string) {
     // README.md
     const readmeContent = `# ${projectName}
 
-## 📋 Description
-Project created with Constellation CLI
+## Architecture: ${architecture.toUpperCase()}
 
-## 🚀 Getting Started
+## Setup
 
-### Prerequisites
-- Node.js (for JavaScript/TypeScript projects)
-- Java 17+ (for Spring Boot)
-- PHP 8+ (for Slim)
-- .NET 8+ (for C#)
-
-### Installation
 \`\`\`bash
 npm install
-# or
-mvn install
-# or
-composer install
-# or
-dotnet restore
-\`\`\`
-
-### Running the project
-\`\`\`bash
 npm run dev
-# or
-mvn spring-boot:run
-# or
-php -S localhost:8000 -t public
-# or
-dotnet run
 \`\`\`
 
-## 📁 Project Structure
+## Structure
 
-\`\`\`
-${projectName}/
-├── src/           # Source code
-├── tests/         # Test files
-├── public/        # Static assets
-├── docs/          # Documentation
-└── scripts/       # Utility scripts
-\`\`\`
+Created with **Constellation CLI**
 
-## 📄 License
-MIT
+---
+Generated with ❤️
 `;
     fs.writeFileSync(path.join(projectPath, 'README.md'), readmeContent);
 
     // .gitignore
-    const gitignoreContent = `# Dependencies
-node_modules/
-vendor/
-packages/
-
-# Build outputs
-dist/
-build/
-out/
-target/
-bin/
-obj/
-
-# Environment
+    const gitignore = `node_modules/
 .env
-.env.local
-.env.*.local
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# IDE
-.vscode/
-!.vscode/launch.json
-!.vscode/tasks.json
-.idea/
-*.suo
-*.user
-
-# OS
+logs/
+dist/
 .DS_Store
-Thumbs.db
-
-# Test coverage
-coverage/
-.nyc_output/
-
-# Temporary files
-*.tmp
-*.temp
 `;
-    fs.writeFileSync(path.join(projectPath, '.gitignore'), gitignoreContent);
+    fs.writeFileSync(path.join(projectPath, '.gitignore'), gitignore);
 
     // .env.example
-    const envExampleContent = `# Server
-PORT=3000
+    const envExample = `PORT=3000
 NODE_ENV=development
-
-# Database
-DB_HOST=
-DB_PORT
-DB_USER=
-DB_PASSWORD=
-DB_NAME=
-
-# Security
-JWT_SECRET=your_secret_key_here
-JWT_EXPIRES_IN=1d
-
-# API Keys
-API_KEY=
 `;
-    fs.writeFileSync(path.join(projectPath, '.env.example'), envExampleContent);
-
-    // LICENSE
-    const licenseContent = `MIT License
-
-Copyright (c) 2025 Constellation CLI
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-`;
-    fs.writeFileSync(path.join(projectPath, 'LICENSE'), licenseContent);
-
-    // Show progress
-    await vscode.window.withProgress({
-        location: vscode.ProgressLocation.Notification,
-        title: `Creating ${projectName} project...`,
-        cancellable: false
-    }, async () => {
-        // 7. Framework-specific generation
-        if (framework.includes('Node.js')) {
-            await generateNodeProject(projectPath, projectName);
-        } else if (framework.includes('Spring')) {
-            await generateSpringProject(projectPath, projectName);
-        } else if (framework.includes('PHP')) {
-            await generatePhpProject(projectPath, projectName);
-        } else if (framework.includes('C#')) {
-            await generateCSharpProject(projectPath, projectName);
-        } else if (framework.includes('TypeScript')) {
-            await generateTypeScriptProject(projectPath, projectName);
-        }
-    });
-
-    // 8. Ask to open project
-    const openFolder = await vscode.window.showInformationMessage(
-        `✅ Project ${projectName} created successfully! Open in VS Code?`,
-        'Yes', 'No'
-    );
-    if (openFolder === 'Yes') {
-        vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath));
-    }
+    fs.writeFileSync(path.join(projectPath, '.env.example'), envExample);
 }
-
