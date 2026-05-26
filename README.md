@@ -14,7 +14,7 @@
 
 ## 🔧 Requirements
 
-- VS Code 1.120.0 or higher
+- VS Code 1.85.0 or higher
 - Node.js (for JavaScript/TypeScript projects)
 - Java 17+ (for Spring Boot)
 - PHP 8+ (for Slim)
