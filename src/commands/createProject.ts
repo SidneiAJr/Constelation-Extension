@@ -8,6 +8,7 @@ import {
     generateCSharpProject, 
     generateTypeScriptProject 
 } from '../templates/index';
+import { generateDockerCompose } from '../templates/TemplateDocker';
 
 export async function createProject(architecture: string = 'mvc') {
     try {
@@ -135,10 +136,24 @@ export async function createProject(architecture: string = 'mvc') {
             progress.report({ increment: 100, message: 'Done!' });
         });
 
-        // 9. Success message
+        // 9. Ask for Docker Compose generation
+        const generateDocker = await vscode.window.showInformationMessage(
+            '🐳 Gerar docker-compose.yml com bancos de dados?',
+            'Sim', 'Não', 'Apenas Dockerfile'
+        );
+
+        if (generateDocker === 'Sim') {
+            await generateDockerCompose(projectPath, projectName);
+            vscode.window.showInformationMessage('✅ docker-compose.yml gerado! Use "docker-compose up -d" para subir.');
+        } else if (generateDocker === 'Apenas Dockerfile') {
+            await generateSimpleDockerfile(projectPath, framework.value);
+            vscode.window.showInformationMessage('✅ Dockerfile gerado! Use "docker build -t meu-app ." para construir.');
+        }
+
+        // 10. Success message
         const openFolder = await vscode.window.showInformationMessage(
             `✅ Project ${projectName} created successfully!`,
-            '📂 Open in VS Code', '📋 Copy Path', '👍 Great'
+            '📂 Open in VS Code', '📋 Copy Path', '🐳 Subir containers agora', '👍 Great'
         );
         
         if (openFolder === '📂 Open in VS Code') {
@@ -146,6 +161,11 @@ export async function createProject(architecture: string = 'mvc') {
         } else if (openFolder === '📋 Copy Path') {
             vscode.env.clipboard.writeText(projectPath);
             vscode.window.showInformationMessage('📋 Path copied!');
+        } else if (openFolder === '🐳 Subir containers agora' && generateDocker === 'Sim') {
+            const terminal = vscode.window.createTerminal('Docker Compose');
+            terminal.sendText(`cd "${projectPath}"`);
+            terminal.sendText('docker-compose up -d');
+            terminal.show();
         }
 
     } catch (error) {
@@ -215,6 +235,12 @@ npm install
 npm run dev
 \`\`\`
 
+## Docker (se gerado)
+
+\`\`\`bash
+docker-compose up -d
+\`\`\`
+
 ## Structure
 
 Created with **Constellation CLI**
@@ -230,6 +256,7 @@ Generated with ❤️
 logs/
 dist/
 .DS_Store
+*.log
 `;
     fs.writeFileSync(path.join(projectPath, '.gitignore'), gitignore);
 
@@ -238,4 +265,50 @@ dist/
 NODE_ENV=development
 `;
     fs.writeFileSync(path.join(projectPath, '.env.example'), envExample);
+}
+
+// Simple Dockerfile generator
+async function generateSimpleDockerfile(projectPath: string, framework: string) {
+    let dockerfile = '';
+    
+    switch (framework) {
+        case 'javascript':
+        case 'typescript':
+            dockerfile = `FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]`;
+            break;
+        case 'java':
+            dockerfile = `FROM openjdk:17-slim
+WORKDIR /app
+COPY . .
+RUN ./mvnw package
+EXPOSE 8080
+CMD ["java", "-jar", "target/*.jar"]`;
+            break;
+        case 'php':
+            dockerfile = `FROM php:8.2-apache
+COPY . /var/www/html/
+EXPOSE 80`;
+            break;
+        case 'csharp':
+            dockerfile = `FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY . .
+RUN dotnet restore
+RUN dotnet publish -c release -o /app
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=build /app .
+EXPOSE 80
+ENTRYPOINT ["dotnet", "app.dll"]`;
+            break;
+    }
+    
+    fs.writeFileSync(path.join(projectPath, 'Dockerfile'), dockerfile);
 }
