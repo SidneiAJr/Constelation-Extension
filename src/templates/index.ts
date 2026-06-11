@@ -1,6 +1,3 @@
-import { generateSparkProject } from './TemplateJavaSpark';
-
-// templates/index.ts
 export { generateNodeProject } from './TemplateJS';
 export { generateTypeScriptProject } from './TemplateTS';
 export { generateSpringProject } from './TemplateJava';
