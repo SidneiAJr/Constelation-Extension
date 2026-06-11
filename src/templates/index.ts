@@ -1,13 +1,9 @@
-// ================================
-// BARREL FILE - Exporta todos os templates
-// ================================
+import { generateSparkProject } from './TemplateJavaSpark';
 
-// Templates de linguagens
+// templates/index.ts
 export { generateNodeProject } from './TemplateJS';
 export { generateTypeScriptProject } from './TemplateTS';
 export { generateSpringProject } from './TemplateJava';
 export { generatePhpProject } from './TemplatePHP';
 export { generateCSharpProject } from './Templatecs';
-
-// Estruturas/Arquiteturas
-export { structure } from './TemplateStrure';
+export {generateSparkProject} from './TemplateJavaSpark'
