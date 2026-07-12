@@ -3,7 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 export async function generateNodeProject(projectPath: string, projectName: string) {
-    
+
     // package.json
     const packageJson = {
         name: projectName,
@@ -12,7 +12,7 @@ export async function generateNodeProject(projectPath: string, projectName: stri
         main: "server.js",
         scripts: {
             "start": "node server.js",
-            "dev": "nodemon server.js"
+            "dev": "node --watch server.js"
         },
         dependencies: {
             "express": "^4.18.2",
@@ -20,10 +20,12 @@ export async function generateNodeProject(projectPath: string, projectName: stri
             "bcrypt": "^5.1.0",
             "jsonwebtoken": "^9.0.0",
             "cors": "^2.8.5",
-            "dotenv": "^16.3.0"
+            "dotenv": "^16.3.0",
+            "axios": "^1.6.0",
+            "zod": "^3.22.0"
         },
         devDependencies: {
-            "nodemon": "^3.0.1"
+            "@types/node": "^20.0.0"
         }
     };
     fs.writeFileSync(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
@@ -51,11 +53,11 @@ app.listen(PORT, () => {
     fs.writeFileSync(path.join(projectPath, 'server.js'), serverJs);
 
     // .env
-    const env = `PORT=3000
-DB_HOST=localhost
-DB_USER=root
+    const env = `PORT=
+DB_HOST=
+DB_USER=
 DB_PASSWORD=
-DB_NAME=meu_banco
+DB_NAME=
 JWT_SECRET=`;
     fs.writeFileSync(path.join(projectPath, '.env'), env);
     fs.writeFileSync(path.join(projectPath, '.env.example'), env);
@@ -81,11 +83,22 @@ CMD ["npm", "start"]`;
 
 ## Backend Node.js
 
-### Rodar
+### Dependências
 \`\`\`bash
 npm install
+\`\`\`
+
+### Rodar
+\`\`\`bash
 npm run dev
 \`\`\`
+
+### Stack inclusa
+- Express — HTTP server
+- MySQL2 — driver MySQL
+- JWT + Bcrypt — auth
+- Axios — requisições HTTP
+- Zod — validação
 
 ### Docker
 \`\`\`bash

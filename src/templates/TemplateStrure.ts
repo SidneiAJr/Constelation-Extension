@@ -2,8 +2,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-export function generateStructure(architecture: string, projectPath: string) {
-    const structures: Record<string, string[]> = {
+export function generateStructure(architecture: string, projectPath: string, framework: string) {
+
+    const base: Record<string, string[]> = {
         mvc: [
             'src/controllers',
             'src/services',
@@ -39,39 +40,82 @@ export function generateStructure(architecture: string, projectPath: string) {
             'src/adapters/outgoing',
             'src/adapters/persistence',
             'src/config'
-        ],
-        onion: [
-            'src/domain/models',
-            'src/domain/services',
-            'src/application/services',
-            'src/application/dtos',
-            'src/infrastructure/persistence',
-            'src/infrastructure/http',
-            'src/infrastructure/security',
-            'src/infrastructure/config'
-        ],
-        cqrs: [
-            'src/commands',
-            'src/queries',
-            'src/handlers',
-            'src/domain/entities',
-            'src/domain/repositories',
-            'src/infrastructure/write',
-            'src/infrastructure/read',
-            'src/infrastructure/http',
-            'src/controllers',
-            'src/config'
-        ],
-        layered: [
-            'src/presentation',
-            'src/application',
-            'src/domain',
-            'src/infrastructure',
-            'src/shared'
         ]
     };
 
-    const folders = structures[architecture] || structures.mvc;
+    // PHP tem estrutura completamente diferente
+    const phpBase: Record<string, string[]> = {
+        mvc: [
+            'app/Controllers',
+            'app/Services',
+            'app/Repositories',
+            'app/Models',
+            'app/Middleware',
+            'app/Config',
+            'public'
+        ],
+        ddd: [
+            'app/Domain/Entities',
+            'app/Domain/Repositories',
+            'app/Application/Services',
+            'app/Application/DTOs',
+            'app/Infrastructure/Persistence',
+            'app/Infrastructure/Http',
+            'app/Interfaces/Controllers',
+            'public'
+        ],
+        clean: [
+            'app/Entities',
+            'app/UseCases',
+            'app/Controllers',
+            'app/Repositories',
+            'app/Presenters',
+            'public'
+        ],
+        hexagonal: [
+            'app/Core/Domain',
+            'app/Core/Application',
+            'app/Ports/Incoming',
+            'app/Ports/Outgoing',
+            'app/Adapters/Incoming',
+            'app/Adapters/Outgoing',
+            'app/Adapters/Persistence',
+            'app/Config',
+            'public'
+        ]
+    };
+
+    const extras: Record<string, string[]> = {
+        typescript: [
+            'src/schemas',
+            'src/types',
+            'src/exceptions'
+        ],
+        javascript: [
+            'src/schemas',
+            'src/types',
+            'src/exceptions'
+        ],
+        php: [
+            'app/Requests',
+            'app/Exceptions'
+        ],
+        java: [],
+        javaspring: [
+            'src/main/java/com/example/dtos',
+            'src/main/java/com/example/exceptions'
+        ],
+        csharp: [
+            'DTOs',
+            'Exceptions',
+            'Interfaces'
+        ]
+    };
+
+    const folders = framework === 'php'
+        ? [...(phpBase[architecture] || phpBase.mvc), ...(extras.php)]
+        : [...(base[architecture] || base.mvc), ...(extras[framework] || [])];
+
     folders.forEach(folder => {
         fs.mkdirSync(path.join(projectPath, folder), { recursive: true });
     });

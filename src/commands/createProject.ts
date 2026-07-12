@@ -5,6 +5,7 @@ import * as path from 'path';
 import { generateCSharpProject, generatePhpProject, generateTypeScriptProject, generateNodeProject, generateSparkProject, generateSpringProject } from '../templates';
 import { generateStructure } from '../templates/TemplateStrure';
 import { generateBaseFiles } from '../templates/TemplateFiles';
+import { generateUniversalMVC } from '../templates/TemplateUniversal';
 
 export async function createProject() {
     // 1. Nome do projeto
@@ -24,7 +25,7 @@ export async function createProject() {
         { label: '💙 TypeScript (Node.js)', value: 'typescript' },
         { label: '🟨 JavaScript (Node.js)', value: 'javascript' },
         { label: '☕ Java (Spark Framework)', value: 'java' },
-         { label: '☕ Java (Spring Boot)', value: 'javaspring' },
+        { label: '☕ Java (Spring Boot)', value: 'javaspring' },
         { label: '🐘 PHP (Slim Framework)', value: 'php' },
         { label: '🟦 C# (ASP.NET Core)', value: 'csharp' }
     ], { placeHolder: 'Escolha o framework' });
@@ -37,7 +38,7 @@ export async function createProject() {
         { label: '✨ Clean Architecture', value: 'clean' },
         { label: '🔷 Hexagonal', value: 'hexagonal' }
     ], { placeHolder: 'Arquitetura' });
-    
+
     // 4. Banco de dados (opcional)
     await vscode.window.showQuickPick([
         { label: '🐬 MySQL', value: 'mysql', picked: true },
@@ -78,20 +79,19 @@ export async function createProject() {
         title: `🚀 Criando ${projectName}...`,
         cancellable: false
     }, async (progress) => {
-        progress.report({ increment: 0, message: 'Criando estrutura...' });
-
+        progress.report({ increment: 0, message: 'Criando estrutura de pastas...' });
         const archValue = architecture?.value || 'mvc';
-        generateStructure(archValue, projectPath);
+        generateStructure(archValue, projectPath, framework.value); // <- framework passado aqui agora
 
         progress.report({ increment: 20, message: 'Criando arquivos base...' });
-        
-        // Cria os arquivos vazios da estrutura
         generateBaseFiles(projectPath, framework.value);
 
-        progress.report({ increment: 30, message: 'Gerando arquivos do framework...' });
+        progress.report({ increment: 40, message: 'Gerando MVC universal...' });
+        generateUniversalMVC(projectPath, framework.value);
 
+        progress.report({ increment: 60, message: 'Gerando arquivos do framework...' });
         const fw = framework.value;
-        
+
         if (fw === 'javascript') {
             await generateNodeProject(projectPath, projectName);
         } else if (fw === 'typescript') {
@@ -102,7 +102,7 @@ export async function createProject() {
             await generatePhpProject(projectPath, projectName);
         } else if (fw === 'csharp') {
             await generateCSharpProject(projectPath, projectName);
-        }else if (fw === 'javaspring') {
+        } else if (fw === 'javaspring') {
             await generateSpringProject(projectPath, projectName);
         }
 
@@ -124,7 +124,7 @@ export async function createProject() {
         `✅ ${projectName} criado com sucesso!`,
         '📂 Abrir projeto'
     );
-    
+
     if (open === '📂 Abrir projeto') {
         vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(projectPath));
     }
