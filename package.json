@@ -2,7 +2,7 @@
   "name": "constellation-project-creatornew",
   "displayName": "Constellation Project Creator New",
   "description": "Creates complete projects with MVC, DDD, Clean Architecture, Hexagonal and more. Supports Node.js, TypeScript, Java, PHP and C#.",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "publisher": "SidAlbertaodasmassa",
   "icon": "icon.ico",
   "repository": {

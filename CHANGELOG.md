@@ -1,5 +1,22 @@
 # Change Log
 
+## [0.0.4]
+
+### Adicionado
+- 🧩 **MVC Universal**: Repository → Service → Controller gerados automaticamente para todos os frameworks
+- 🔐 **Auth esqueleto**: JWT utils, middleware de autenticação e validação com Zod (TS/JS)
+- 📁 **Pastas extras por framework**: schemas/, types/, exceptions/ (TS/JS) — DTOs/, Exceptions/, Interfaces/ (C#) — dtos/, exceptions/ (Spring)
+- ✨ **Métodos padrão**: create, findById, findByEmail, findByUsername, findAll, update, delete em todos os frameworks
+- 🐘 **PHP com estrutura correta**: app/ separado do src/, sem duplicação de pastas
+
+### Alterado
+- 🔧 `.env` agora gerado vazio — usuário preenche com seus próprios valores
+- 🔧 TypeScript: adicionado TypeORM, Winston, Axios, Zod, reflect-metadata
+- 🔧 JavaScript: removido nodemon, substituído por `node --watch` nativo
+- 🔧 Stack de cada framework documentada no README
+
+---
+
 ## [0.0.3] 
 
 ### Adicionado
@@ -16,9 +33,9 @@
 
 ### Corrigido
 - 🐛 Compatibilidade com VS Code mais antigo
-- 🔨 Resolução de caminhos no Windows (corrigido)
+- 🔨 Resolução de caminhos no Windows corrigida
 - ❌ Removidas pastas desnecessárias (public/, tests/, docs/, logs/, tmp/)
-- ⚠ Removido Suporte a Frotend 
+- ⚠️ Removido suporte a Frontend
 
 ---
 
@@ -39,7 +56,7 @@
 
 ---
 
-## [0.0.1] 
+## [0.0.1]
 
 ### Adicionado
 - 🎉 Lançamento inicial
